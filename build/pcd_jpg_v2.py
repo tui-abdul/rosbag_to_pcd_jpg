@@ -202,21 +202,21 @@ class CameraPublisher(Node):
             pickle.dump(ouster_msg, f)
         with open(self.folder_pc_1 + filename + '_pointcloud_msg.pkl', 'wb') as f:
             pickle.dump(ouster_msg1, f)
-            
+
         cv_image = self.bridge.imgmsg_to_cv2(image_msg, desired_encoding='bgr8')
         cv_image1 = self.bridge.imgmsg_to_cv2(image_msg1, desired_encoding='bgr8')
         undistorted_image_left = cv2.undistort(cv_image, self.matrix_coefficients_left,self.distortion_coefficients_left)
         undistorted_image_right = cv2.undistort(cv_image1, self.matrix_coefficients_right,self.distortion_coefficients_right)
         cv2.imwrite(self.folder_image_1 + filename + '.jpg', undistorted_image_left)
         cv2.imwrite(self.folder_image_2 + filename +'.jpg', undistorted_image_right)
-        '''
+        
         cv_image2 = self.bridge.imgmsg_to_cv2(image_msg2, desired_encoding='bgr8')
         cv_image3 = self.bridge.imgmsg_to_cv2(image_msg3, desired_encoding='bgr8')
         undistorted_image_left2 = cv2.undistort(cv_image2, self.matrix_coefficients_left2,self.distortion_coefficients_left2)
         undistorted_image_right3 = cv2.undistort(cv_image3, self.matrix_coefficients_right3,self.distortion_coefficients_right3)
         cv2.imwrite(self.folder_image_3 + filename + '.jpg', undistorted_image_left2)
         cv2.imwrite(self.folder_image_4 + filename +'.jpg', undistorted_image_right3)
-
+        '''
         cv2.namedWindow("Image 1", cv2.WINDOW_NORMAL)
         cv2.namedWindow("Image 2", cv2.WINDOW_NORMAL)
         # Process the images (example: show them)
@@ -251,7 +251,17 @@ class CameraPublisher(Node):
         #print('points',points,points.shape)   
         # Get timestamp as float
         timestamp = float(f"{ouster_msg.header.stamp.sec}.{ouster_msg.header.stamp.nanosec:09d}")
-        #save_pcd_module.save_pcd(f"{self.folder_pc}{filename}.pcd", points.tolist(), timestamp)
+        save_pcd_module.save_pcd(f"{self.folder_pc}{filename}.pcd", points.tolist(), timestamp)
+
+        pc_as_numpy_array1 = np.array(ros2_numpy.point_cloud2.point_cloud2_to_array(ouster_msg1)['xyz'] )
+        
+        pc_as_numpy_array_intensity1 = np.array(ros2_numpy.point_cloud2.point_cloud2_to_array(ouster_msg1)['intensity'] )
+        pc_as_numpy_array1 = self.transformation_ouster(pc_as_numpy_array1)
+        pc_as_numpy_array_intensity1 = pc_as_numpy_array_intensity1.squeeze()
+        points1 = np.hstack([pc_as_numpy_array1[:, :3], pc_as_numpy_array_intensity1.reshape(-1, 1)])#.tolist()
+        points1 = np.nan_to_num(points1, nan=0.0)
+        timestamp1 = float(f"{ouster_msg1.header.stamp.sec}.{ouster_msg1.header.stamp.nanosec:09d}")
+        save_pcd_module.save_pcd(f"{self.folder_pc_1}{filename}.pcd", points1.tolist(), timestamp1)
         '''
         intensity_norm = (pc_as_numpy_array_intensity - pc_as_numpy_array_intensity.min()) / (pc_as_numpy_array_intensity.ptp() + 1e-8)
         colors = np.stack([intensity_norm]*3, axis=1) 
