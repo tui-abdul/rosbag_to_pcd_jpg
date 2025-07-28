@@ -23,52 +23,57 @@ class CameraPublisher(Node):
     def __init__(self):
         super().__init__('camera_publisher')
 
-
-        with open('/home/abd1340m/Dokumente/extrinsic_calibration/calibration_results/1108_603_data/40272603.yaml', "r") as file_handle:
+        with open("../param.yaml","r") as file_handler:
+            load_data = yaml.safe_load(file_handler)
+        with open(load_data["intrinsic_param_path_1108_603"] , "r") as file_handle:
             self.calib_data_left = yaml.safe_load(file_handle)
             self.matrix_coefficients_left =    self.calib_data_left["camera_matrix"]["data"]
             self.distortion_coefficients_left = self.calib_data_left["distortion_coefficients"]["data"]
             self.matrix_coefficients_left = np.array(self.matrix_coefficients_left).reshape(3,3)
             self.distortion_coefficients_left = np.array(self.distortion_coefficients_left)
 
-        with open('/home/abd1340m/Dokumente/extrinsic_calibration/calibration_results/1108_618_data/40243618.yaml', "r") as file_handle:
+        with open(load_data["intrinsic_param_path_1108_618"] , "r") as file_handle:
             self.calib_data_right = yaml.safe_load(file_handle)
             self.matrix_coefficients_right =    self.calib_data_right["camera_matrix"]["data"]
             self.distortion_coefficients_right = self.calib_data_right["distortion_coefficients"]["data"]
             self.matrix_coefficients_right = np.array(self.matrix_coefficients_right).reshape(3,3)
             self.distortion_coefficients_right = np.array(self.distortion_coefficients_right)
 
-        with open('/home/abd1340m/Dokumente/extrinsic_calibration/calibration_results/0372_302_data/40442302.yaml', "r") as file_handle:
+        with open(load_data["intrinsic_param_path_0372_302"] , "r") as file_handle:
             self.calib_data_left2 = yaml.safe_load(file_handle)
             self.matrix_coefficients_left2 =    self.calib_data_left2["camera_matrix"]["data"]
             self.distortion_coefficients_left2 = self.calib_data_left2["distortion_coefficients"]["data"]
             self.matrix_coefficients_left2 = np.array(self.matrix_coefficients_left2).reshape(3,3)
             self.distortion_coefficients_left2 = np.array(self.distortion_coefficients_left2)
 
-        with open('/home/abd1340m/Dokumente/extrinsic_calibration/calibration_results/0372_622_data/40253622.yaml', "r") as file_handle:
+        with open(load_data["intrinsic_param_path_0372_622"] , "r") as file_handle:
             self.calib_data_right3 = yaml.safe_load(file_handle)
             self.matrix_coefficients_right3 =    self.calib_data_right3["camera_matrix"]["data"]
             self.distortion_coefficients_right3 = self.calib_data_right3["distortion_coefficients"]["data"]
             self.matrix_coefficients_right3 = np.array(self.matrix_coefficients_right3).reshape(3,3)
             self.distortion_coefficients_right3 = np.array(self.distortion_coefficients_right3)
-        self.interval_start = 3
-        self.interval_end = 5
+        self.interval_start = int(load_data["interval_start"])
+        self.interval_end = int(load_data["interval_end"])
         self.count = 0
         self.count_1 = 0
-        folders = ["camera_image_0", "camera_image_1","camera_image_2","camera_image_3", "lidar_point_cloud_0","lidar_point_cloud_1","camera_config"]
-
+        folders = ["camera_image_0", "camera_image_1","camera_image_2","camera_image_3", "lidar_point_cloud_0","lidar_point_cloud_1","camera_config", "weather_data", "extraction_info"]
+        root_path = load_data["root_path"]
+        sequence_num = load_data["sequence_num"]  
+        sequence_folder = "sequence_" + str(sequence_num) + "/" 
+        root_path = os.path.join(root_path, sequence_folder)
         # Loop to create each folder
         for folder in folders:
             # Create folder if it doesn't already exist
+            folder = os.path.join(root_path, folder)
             os.makedirs(folder, exist_ok=True)
 
         self.get_logger().info('4 folders created successfully!')
-        self.folder_image_1 = 'camera_image_0/'
-        self.folder_image_2 = 'camera_image_1/'
-        self.folder_image_3 = 'camera_image_2/'
-        self.folder_image_4 = 'camera_image_3/'
-        self.folder_pc = 'lidar_point_cloud_0/'
-        self.folder_pc_1 = 'lidar_point_cloud_1/'
+        self.folder_image_1 =  root_path + 'camera_image_0/'
+        self.folder_image_2 = root_path + 'camera_image_1/'
+        self.folder_image_3 = root_path + 'camera_image_2/'
+        self.folder_image_4 = root_path + 'camera_image_3/'
+        self.folder_pc = root_path + 'lidar_point_cloud_0/'
+        self.folder_pc_1 = root_path + 'lidar_point_cloud_1/'
         self.file_1 = open(self.folder_image_1 + 'timestamps.txt', 'w')
         self.file_2 = open(self.folder_image_2 + 'timestamps.txt', 'w')
         self.file_3 = open(self.folder_pc + 'timestamps.txt', 'w')
@@ -78,7 +83,7 @@ class CameraPublisher(Node):
         
         self.file_6 = open(self.folder_pc_1 + 'timestamps.txt', 'w')
 
-        bag_file_path = "/mnt/sda/Abdul_Haq/anish_data/bag_20250630_120331"
+        bag_file_path = load_data["bag_file_path"]
         command = ["ros2", "bag", "play", bag_file_path, "--rate", "0.1"]# , "--pause"]
         unpause_command = [
                                 "ros2", "service", "call",
@@ -155,13 +160,23 @@ class CameraPublisher(Node):
     
     def callback(self, image_msg,image_msg1,image_msg2,image_msg3,ouster_msg,ouster_msg1):
         self.count = self.count + 1
-        self.count_1 = self.count_1 + 1
         filename = str(self.count_1)
         if self.count == 1:
             self.first_timestamp = image_msg.header.stamp.sec
         #self.get_logger().info('New message arrived')
         print("new message arrived",self.count)
         start_timestamp,end_timestamp=self.time_calc_start_end(self.interval_start, self.interval_end, self.first_timestamp)
+
+
+        
+            # Write some content to the file
+        self.file_1.write(f"{self.count},{self.count_1}  , {image_msg.header.stamp.sec}.{image_msg.header.stamp.nanosec} \n")
+        self.file_2.write(f"{self.count} ,{self.count_1} , {image_msg1.header.stamp.sec}.{image_msg1.header.stamp.nanosec} \n")
+        self.file_3.write(f"{self.count}, {self.count_1}  , {ouster_msg.header.stamp.sec}.{ouster_msg.header.stamp.nanosec} \n")
+
+        self.file_4.write(f"{self.count},{self.count_1}  , {image_msg2.header.stamp.sec}.{image_msg2.header.stamp.nanosec} \n")
+        self.file_5.write(f"{self.count},{self.count_1}  , {image_msg3.header.stamp.sec}.{image_msg3.header.stamp.nanosec} \n")
+        self.file_6.write(f"{self.count},{self.count_1}  , {ouster_msg1.header.stamp.sec}.{ouster_msg1.header.stamp.nanosec} \n")
 
         if image_msg.header.stamp.sec < start_timestamp or image_msg.header.stamp.sec > end_timestamp:
             # Skip the message if it is outside the specified time interval
@@ -173,22 +188,6 @@ class CameraPublisher(Node):
             return
 
 
-        
-            # Write some content to the file
-        self.file_1.write(f"{self.count} , {image_msg.header.stamp.sec}.{image_msg.header.stamp.nanosec} \n")
-        self.file_2.write(f"{self.count} , {image_msg1.header.stamp.sec}.{image_msg1.header.stamp.nanosec} \n")
-        self.file_3.write(f"{self.count} , {ouster_msg.header.stamp.sec}.{ouster_msg.header.stamp.nanosec} \n")
-
-        self.file_4.write(f"{self.count} , {image_msg2.header.stamp.sec}.{image_msg2.header.stamp.nanosec} \n")
-        self.file_5.write(f"{self.count} , {image_msg3.header.stamp.sec}.{image_msg3.header.stamp.nanosec} \n")
-        self.file_6.write(f"{self.count} , {ouster_msg1.header.stamp.sec}.{ouster_msg1.header.stamp.nanosec} \n")
-
-        # Convert ROS Image messages to OpenCV images
-        #print('camera 1',image_msg.header.stamp.sec,',',image_msg.header.stamp.nanosec)
-        #print('camera 2',image_msg1.header.stamp.sec,image_msg1.header.stamp.nanosec)
-        #print('lidar',ouster_msg.header.stamp.sec,ouster_msg.header.stamp.nanosec)
-        #self.lidar_msg = ouster_msg
-        #self.publisher_lidar.publish(self.lidar_msg)
 
         with open(self.folder_image_1 + filename + '_image_msg.pkl', 'wb') as f:
             pickle.dump(image_msg, f)
@@ -237,19 +236,12 @@ class CameraPublisher(Node):
         
         pc_as_numpy_array_intensity = np.array(ros2_numpy.point_cloud2.point_cloud2_to_array(ouster_msg)['intensity'] )
         pc_as_numpy_array = self.transformation_ouster(pc_as_numpy_array)
-        #pc_as_numpy_array_final = np.hstack([pc_as_numpy_array[:,:3] , pc_as_numpy_array_intensity.reshape(-1, 1)])
-        #pc_as_numpy_array = self.transform_to_ground_plane(pc_as_numpy_array[:,:3] )
-        #point_cloud = o3d.geometry.PointCloud()
-        #point_cloud.points = o3d.utility.Vector3dVector(pc_as_numpy_array)#[:,:3])
-        #o3d.io.write_point_cloud(self.folder_pc + filename + '.pcd', point_cloud, format='auto', write_ascii=False, compressed=False, print_progress=False)
+        
         pc_as_numpy_array_intensity = pc_as_numpy_array_intensity.squeeze()
-        #points_intensity = np.hstack([pc_as_numpy_array[0:,:3] , pc_as_numpy_array_intensity[:, None],np.zeros((pc_as_numpy_array.shape[0], 1)) ]).astype(np.float32)
-        #print('points_intensity',points_intensity.shape)
-        #points_intensity.tofile(self.folder_pc + filename + '.bin')
+        
         points = np.hstack([pc_as_numpy_array[:, :3], pc_as_numpy_array_intensity.reshape(-1, 1)])#.tolist()
         points = np.nan_to_num(points, nan=0.0)
-        #print('points',points,points.shape)   
-        # Get timestamp as float
+        
         timestamp = float(f"{ouster_msg.header.stamp.sec}.{ouster_msg.header.stamp.nanosec:09d}")
         save_pcd_module.save_pcd(f"{self.folder_pc}{filename}.pcd", points.tolist(), timestamp)
 
@@ -262,78 +254,14 @@ class CameraPublisher(Node):
         points1 = np.nan_to_num(points1, nan=0.0)
         timestamp1 = float(f"{ouster_msg1.header.stamp.sec}.{ouster_msg1.header.stamp.nanosec:09d}")
         save_pcd_module.save_pcd(f"{self.folder_pc_1}{filename}.pcd", points1.tolist(), timestamp1)
-        '''
-        intensity_norm = (pc_as_numpy_array_intensity - pc_as_numpy_array_intensity.min()) / (pc_as_numpy_array_intensity.ptp() + 1e-8)
-        colors = np.stack([intensity_norm]*3, axis=1) 
-
-        pcd = o3d.geometry.PointCloud()
-        pcd.points = o3d.utility.Vector3dVector(pc_as_numpy_array[:,:3])
-        pcd.colors = o3d.utility.Vector3dVector(colors)
-
-        ply_filename = self.folder_pc + filename + '.pcd'
-        o3d.io.write_point_cloud(ply_filename, pcd)
-
-
-
-        pc_as_numpy_array1 = np.array(ros2_numpy.point_cloud2.point_cloud2_to_array(ouster_msg1)['xyz'] ) 
-        pc_as_numpy_array_intensity1 = np.array(ros2_numpy.point_cloud2.point_cloud2_to_array(ouster_msg1)['intensity'] )
-        pc_as_numpy_array1 = self.transformation_ouster(pc_as_numpy_array1)
-        #pc_as_numpy_array_final = np.hstack([pc_as_numpy_array[:,:3] , pc_as_numpy_array_intensity.reshape(-1, 1)])
-        #pc_as_numpy_array = self.transform_to_ground_plane(pc_as_numpy_array[:,:3] )
-        #point_cloud = o3d.geometry.PointCloud()
-        #point_cloud.points = o3d.utility.Vector3dVector(pc_as_numpy_array)#[:,:3])
-        #o3d.io.write_point_cloud(self.folder_pc + filename + '.pcd', point_cloud, format='auto', write_ascii=False, compressed=False, print_progress=False)
-        pc_as_numpy_array_intensity1 = pc_as_numpy_array_intensity1.squeeze()
-        #points_intensity = np.hstack([pc_as_numpy_array[0:,:3] , pc_as_numpy_array_intensity[:, None],np.zeros((pc_as_numpy_array.shape[0], 1)) ]).astype(np.float32)
-        #print('points_intensity',points_intensity.shape)
-        #points_intensity.tofile(self.folder_pc + filename + '.bin')
-
-
-        intensity_norm1 = (pc_as_numpy_array_intensity1 - pc_as_numpy_array_intensity1.min()) / (pc_as_numpy_array_intensity1.ptp() + 1e-8)
-        colors1 = np.stack([intensity_norm1]*3, axis=1) 
-
-        pcd1 = o3d.geometry.PointCloud()
-        pcd1.points = o3d.utility.Vector3dVector(pc_as_numpy_array1[:,:3])
-        pcd1.colors = o3d.utility.Vector3dVector(colors1)
-
-        ply_filename1 = self.folder_pc_1 + filename + '.pcd'
-        o3d.io.write_point_cloud(ply_filename1, pcd1)
-        '''
+        
+        
+        self.count_1 = self.count_1 + 1
         # Close all OpenCV windows  
         if self.count == 500:
             exit()
 
-       
-        '''
-        vis = o3d.visualization.Visualizer()
-        vis.create_window('edges')
-        
-        point_cloud = o3d.geometry.PointCloud()
-        point_cloud.points = o3d.utility.Vector3dVector(pc_as_numpy_array[:,:3] )
-        # geometry is the point cloud used in your animaiton
-        
-        vis.add_geometry(point_cloud)
-        #view_ctl = self.vis.get_view_control()
-        #view_ctl.set_zoom(0.15)
-        #coordinate_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1.0, origin=[0, 0, 0])
-        opt = vis.get_render_option()
-        opt.show_coordinate_frame = True
-        #self.vis.add_geometry(coordinate_frame)
-        
-        #self.vis.update_geometry(point_cloud)
-        #self.vis.poll_events()
-        #self.vis.update_renderer()
-        vis.run()
-        vis.destroy_window()
-        
-        while True:
-            key = cv2.waitKey(0) & 0xFF
-            # Close the window when 'q' is pressed
-            if key == ord('q'):
-                break
-        
-        cv2.destroyAllWindows()
-        '''
+
         
 def main(args=None):
     rclpy.init(args=args)
