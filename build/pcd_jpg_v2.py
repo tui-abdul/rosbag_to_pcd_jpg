@@ -258,7 +258,7 @@ class CameraPublisher(Node):
         
         self.count_1 = self.count_1 + 1
         # Close all OpenCV windows  
-        if self.count == 500:
+        if self.count == 2000:
             exit()
 
 

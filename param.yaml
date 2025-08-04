@@ -2,8 +2,8 @@ intrinsic_param_path_1108_603: "/home/abd1340m/Dokumente/extrinsic_calibration/c
 intrinsic_param_path_1108_618: "/home/abd1340m/Dokumente/extrinsic_calibration/calibration_results/1108_618_data/40243618.yaml"
 intrinsic_param_path_0372_302: "/home/abd1340m/Dokumente/extrinsic_calibration/calibration_results/0372_302_data/40442302.yaml"
 intrinsic_param_path_0372_622: "/home/abd1340m/Dokumente/extrinsic_calibration/calibration_results/0372_622_data/40253622.yaml"
-root_path: "/mnt/sda/Abdul_Haq/intersection_dataset/light_rain/"
-bag_file_path: "/media/abd1340m/code_61/bag_20250711_110538"
+root_path: "/mnt/sda/Abdul_Haq/intersection_dataset/heavy_rain/"
+bag_file_path: "/media/abd1340m/7AFA-FE9D/code_63/bag_20250730_161548"
 sequence_num: 0
-interval_start: 7
-interval_end: 57
+interval_start: 40
+interval_end: 100
